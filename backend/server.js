@@ -11,10 +11,12 @@ const boardRoutes = require('./routes/boardRoutes');
 const app = express();
 const server = http.createServer(app);
 
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+
 // Setup Socket.io
 const io = new Server(server, {
   cors: {
-    origin: 'http://localhost:5173', // Vite default port
+    origin: FRONTEND_URL,
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true
   }
@@ -23,7 +25,7 @@ const io = new Server(server, {
 app.set('io', io); // Make io accessible in routes
 
 // Middleware
-app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
+app.use(cors({ origin: FRONTEND_URL, credentials: true }));
 app.use(express.json());
 
 // Routes

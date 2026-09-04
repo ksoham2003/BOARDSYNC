@@ -194,7 +194,8 @@ router.post('/:boardId/invite', authMiddleware, checkBoardMembership, async (req
     });
     await req.board.save();
 
-    const acceptUrl = `http://localhost:5173/accept-invite/${req.board._id}`;
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const acceptUrl = `${frontendUrl}/accept-invite/${req.board._id}`;
     
     // Send invitation email with Accept button
     await sendEmail({
