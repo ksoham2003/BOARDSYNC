@@ -20,6 +20,7 @@ const sendEmail = async ({ to, subject, html, text }) => {
           user: smtpUser,
           pass: smtpPass,
         },
+        family: 4, // Force IPv4 to avoid ENETUNREACH errors on cloud servers like Render
       });
     } else {
       // Fallback test account (Ethereal) for development when no SMTP credentials provided
