@@ -204,7 +204,7 @@ router.post('/:boardId/invite', authMiddleware, checkBoardMembership, async (req
     const acceptUrl = `${frontendUrl}/accept-invite/${req.board._id}`;
     
     // Send invitation email with Accept button
-    await sendEmail({
+    const emailRes = await sendEmail({
       to: normalizedEmail,
       subject: `🎯 Invitation to join "${req.board.title}" on BoardSync`,
       text: `Hello,\n\n${inviter ? inviter.name : 'A teammate'} has invited you to join the board "${req.board.title}".\n\nClick the link below to accept the invitation and access the room:\n${acceptUrl}\n\nHappy collaborating!\nBoardSync Team`,
@@ -225,7 +225,9 @@ router.post('/:boardId/invite', authMiddleware, checkBoardMembership, async (req
 
     res.json({
       board: req.board,
-      message: `Invitation email ${isResend ? 'resent' : 'sent'} to ${normalizedEmail}. The user must accept the invite to see the room.`
+      message: emailRes && emailRes.success
+        ? `Invitation email ${isResend ? 'resent' : 'sent'} to ${normalizedEmail}. The user must accept the invite to see the room.`
+        : `Invitation ${isResend ? 'updated' : 'added'} for ${normalizedEmail}. (Email notice: ${emailRes?.error || 'Check SMTP credentials'}).`
     });
   } catch (err) {
     console.error('Invite error:', err);
