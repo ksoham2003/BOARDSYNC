@@ -178,21 +178,27 @@ router.post('/:boardId/invite', authMiddleware, checkBoardMembership, async (req
       (userToInvite && m.user && m.user.toString() === userToInvite._id.toString())
     );
 
+    let isResend = false;
     if (existingMember) {
       if (existingMember.status === 'active') {
         return res.status(400).json({ message: 'User is already an active member of this board' });
       } else {
-        return res.status(400).json({ message: 'An invitation has already been sent to this email address' });
+        // Allow resending the invite email if the invitation is still pending
+        isResend = true;
+        if (userToInvite && !existingMember.user) {
+          existingMember.user = userToInvite._id;
+          await req.board.save();
+        }
       }
+    } else {
+      req.board.members.push({ 
+        user: userToInvite ? userToInvite._id : null, 
+        email: normalizedEmail,
+        role: 'member',
+        status: 'pending' // Only becomes active when user accepts!
+      });
+      await req.board.save();
     }
-
-    req.board.members.push({ 
-      user: userToInvite ? userToInvite._id : null, 
-      email: normalizedEmail,
-      role: 'member',
-      status: 'pending' // Only becomes active when user accepts!
-    });
-    await req.board.save();
 
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     const acceptUrl = `${frontendUrl}/accept-invite/${req.board._id}`;
@@ -219,7 +225,7 @@ router.post('/:boardId/invite', authMiddleware, checkBoardMembership, async (req
 
     res.json({
       board: req.board,
-      message: `Invitation email sent to ${normalizedEmail}. The user must accept the invite to see the room.`
+      message: `Invitation email ${isResend ? 'resent' : 'sent'} to ${normalizedEmail}. The user must accept the invite to see the room.`
     });
   } catch (err) {
     console.error('Invite error:', err);
