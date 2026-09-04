@@ -268,12 +268,12 @@ const BoardView = () => {
         <Dialog open={showInviteModal} onOpenChange={(open) => { setShowInviteModal(open); setInviteError(''); setInviteSuccess(''); }}>
           <DialogTrigger asChild>
             <Button size="sm" className="bg-white text-black hover:bg-zinc-200 font-bold flex items-center gap-1.5 text-xs">
-              <Mail className="h-4 w-4" /> Invite Member
+              <Plus className="h-4 w-4" /> Add Member
             </Button>
           </DialogTrigger>
           <DialogContent className="bg-zinc-950 border-zinc-800 text-white sm:max-w-md">
             <DialogHeader>
-              <DialogTitle className="text-white">Invite Teammate via Email</DialogTitle>
+              <DialogTitle className="text-white">Add Member by Email</DialogTitle>
             </DialogHeader>
             {inviteError ? (
               <div className="text-red-400 text-xs font-medium">{inviteError}</div>
@@ -292,7 +292,7 @@ const BoardView = () => {
               />
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="ghost" onClick={() => { setShowInviteModal(false); setInviteSuccess(''); setInviteError(''); }} className="text-zinc-400 hover:text-white">Close</Button>
-                <Button type="submit" className="bg-white text-black hover:bg-zinc-200 font-bold">Send Invite Email</Button>
+                <Button type="submit" className="bg-white text-black hover:bg-zinc-200 font-bold">Add Member</Button>
               </div>
             </form>
           </DialogContent>

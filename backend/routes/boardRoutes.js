@@ -20,8 +20,8 @@ const checkBoardMembership = async (req, res, next) => {
       (m.email && m.email.toLowerCase() === req.user.email?.toLowerCase())
     );
 
-    if (!member || member.status !== 'active') {
-      return res.status(403).json({ message: 'Access denied. You must accept the invitation to access this board.' });
+    if (!member) {
+      return res.status(403).json({ message: 'Access denied. You are not a member of this board.' });
     }
 
     req.board = board;
@@ -47,8 +47,7 @@ router.get('/', authMiddleware, async (req, res) => {
           $or: [
             { user: req.user.userId },
             { email: userEmail }
-          ],
-          status: 'active'
+          ]
         }
       }
     })
@@ -85,60 +84,6 @@ router.post('/', authMiddleware, async (req, res) => {
   }
 });
 
-// Get board invite details before accepting
-router.get('/:boardId/invite-details', authMiddleware, async (req, res) => {
-  try {
-    const board = await Board.findById(req.params.boardId)
-      .populate('owner', 'name email avatar');
-      
-    if (!board) return res.status(404).json({ message: 'Board not found' });
-
-    const user = await User.findById(req.user.userId);
-    const member = board.members.find(m => 
-      (m.user && m.user.toString() === req.user.userId) || 
-      (m.email && m.email.toLowerCase() === user.email.toLowerCase())
-    );
-
-    res.json({
-      boardId: board._id,
-      title: board.title,
-      owner: board.owner,
-      status: member ? member.status : 'none'
-    });
-  } catch (err) {
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// Accept invitation to join board
-router.post('/:boardId/accept-invite', authMiddleware, async (req, res) => {
-  try {
-    const board = await Board.findById(req.params.boardId);
-    if (!board) return res.status(404).json({ message: 'Board not found' });
-
-    const user = await User.findById(req.user.userId);
-    const userEmail = user.email.toLowerCase();
-
-    let member = board.members.find(m => 
-      (m.user && m.user.toString() === req.user.userId) || 
-      (m.email && m.email.toLowerCase() === userEmail)
-    );
-
-    if (!member) {
-      return res.status(404).json({ message: 'No invitation found for your email address' });
-    }
-
-    member.status = 'active';
-    member.user = req.user.userId; // Bind user ID
-    await board.save();
-
-    res.json({ message: 'Invitation accepted successfully!', boardId: board._id });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
 // Get a single board with its lists and cards
 router.get('/:boardId', authMiddleware, checkBoardMembership, async (req, res) => {
   try {
@@ -146,8 +91,6 @@ router.get('/:boardId', authMiddleware, checkBoardMembership, async (req, res) =
       .populate('owner', 'name email avatar')
       .populate('members.user', 'name email avatar');
       
-    const activeMembers = board.members.filter(m => m.status === 'active');
-    
     const lists = await List.find({ boardId: req.params.boardId })
       .populate('createdBy', 'name email avatar')
       .sort('order');
@@ -156,82 +99,55 @@ router.get('/:boardId', authMiddleware, checkBoardMembership, async (req, res) =
       .populate('createdBy', 'name email avatar')
       .sort('order');
     
-    res.json({ board: { ...board.toObject(), members: activeMembers }, lists, cards });
+    res.json({ board: board.toObject(), lists, cards });
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
   }
 });
 
-// Invite member to board (Status set to 'pending')
+// Add member directly to board by email
 router.post('/:boardId/invite', authMiddleware, checkBoardMembership, async (req, res) => {
   try {
     const { email } = req.body;
     if (!email) return res.status(400).json({ message: 'Email is required' });
 
     const normalizedEmail = email.toLowerCase().trim();
-    const userToInvite = await User.findOne({ email: normalizedEmail });
-    const inviter = await User.findById(req.user.userId);
+    const userToAdd = await User.findOne({ email: normalizedEmail });
     
-    // Check if already a member or invited
+    // Check if already a member
     const existingMember = req.board.members.find(m => 
       (m.email && m.email.toLowerCase() === normalizedEmail) ||
-      (userToInvite && m.user && m.user.toString() === userToInvite._id.toString())
+      (userToAdd && m.user && m.user.toString() === userToAdd._id.toString())
     );
 
-    let isResend = false;
     if (existingMember) {
       if (existingMember.status === 'active') {
-        return res.status(400).json({ message: 'User is already an active member of this board' });
+        return res.status(400).json({ message: 'User is already a member of this board' });
       } else {
-        // Allow resending the invite email if the invitation is still pending
-        isResend = true;
-        if (userToInvite && !existingMember.user) {
-          existingMember.user = userToInvite._id;
-          await req.board.save();
-        }
+        existingMember.status = 'active';
+        if (userToAdd) existingMember.user = userToAdd._id;
       }
     } else {
       req.board.members.push({ 
-        user: userToInvite ? userToInvite._id : null, 
+        user: userToAdd ? userToAdd._id : null, 
         email: normalizedEmail,
         role: 'member',
-        status: 'pending' // Only becomes active when user accepts!
+        status: 'active' // Directly active!
       });
-      await req.board.save();
     }
 
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-    const acceptUrl = `${frontendUrl}/accept-invite/${req.board._id}`;
-    
-    // Send invitation email with Accept button
-    const emailRes = await sendEmail({
-      to: normalizedEmail,
-      subject: `🎯 Invitation to join "${req.board.title}" on BoardSync`,
-      text: `Hello,\n\n${inviter ? inviter.name : 'A teammate'} has invited you to join the board "${req.board.title}".\n\nClick the link below to accept the invitation and access the room:\n${acceptUrl}\n\nHappy collaborating!\nBoardSync Team`,
-      html: `
-        <div style="font-family: Arial, sans-serif; background-color: #0f172a; color: #f8fafc; padding: 30px; border-radius: 10px; max-width: 600px; margin: auto;">
-          <h2 style="color: #6366f1;">BoardSync Room Invitation</h2>
-          <p style="font-size: 16px;">Hello,</p>
-          <p style="font-size: 16px;"><strong>${inviter ? inviter.name : 'A teammate'}</strong> has invited you to join the workspace <strong style="color: #818cf8;">"${req.board.title}"</strong>.</p>
-          <p style="font-size: 14px; color: #94a3b8;">You must accept the invitation to gain access to this room.</p>
-          <div style="margin: 30px 0; text-align: center;">
-            <a href="${acceptUrl}" style="background-color: #6366f1; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px; display: inline-block;">Accept Invitation & Join Room</a>
-          </div>
-          <hr style="border: 1px solid rgba(255,255,255,0.1); margin-top: 30px;" />
-          <p style="font-size: 12px; color: #64748b; text-align: center;">BoardSync Collaborative Task Board</p>
-        </div>
-      `
-    });
+    await req.board.save();
+    const updatedBoard = await Board.findById(req.params.boardId)
+      .populate('owner', 'name email avatar')
+      .populate('members.user', 'name email avatar');
 
     res.json({
-      board: req.board,
-      message: emailRes && emailRes.success
-        ? `Invitation email ${isResend ? 'resent' : 'sent'} to ${normalizedEmail}. The user must accept the invite to see the room.`
-        : `Invitation ${isResend ? 'updated' : 'added'} for ${normalizedEmail}. (Email notice: ${emailRes?.error || 'Check SMTP credentials'}).`
+      board: updatedBoard,
+      message: `${normalizedEmail} added to board successfully!`
     });
   } catch (err) {
-    console.error('Invite error:', err);
-    res.status(500).json({ message: 'Failed to process board invitation' });
+    console.error('Add member error:', err);
+    res.status(500).json({ message: 'Failed to add member to board' });
   }
 });
 

@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { GoogleLogin } from '@react-oauth/google';
-import { jwtDecode } from 'jwt-decode';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
@@ -12,7 +10,7 @@ const Register = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const { register, loginWithGoogle } = useAuth();
+  const { register } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -25,21 +23,6 @@ const Register = () => {
     }
   };
 
-  const handleGoogleSuccess = async (credentialResponse) => {
-    try {
-      const decoded = jwtDecode(credentialResponse.credential);
-      await loginWithGoogle({
-        name: decoded.name,
-        email: decoded.email,
-        avatar: decoded.picture,
-        googleId: decoded.sub
-      });
-      navigate('/');
-    } catch (err) {
-      setError('Google registration failed');
-    }
-  };
-
   return (
     <div className="flex items-center justify-center min-h-screen bg-black text-white p-4">
       <Card className="w-full max-w-md border-zinc-800 bg-zinc-950 text-white shadow-2xl">
@@ -48,25 +31,11 @@ const Register = () => {
             BOARDSYNC
           </CardTitle>
           <CardDescription className="text-zinc-400">
-            Create an account or Sign up with Google
+            Create an account to start collaborating
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-4">
           {error && <div className="text-red-400 text-xs text-center border border-red-900 bg-red-950/50 p-2 rounded">{error}</div>}
-
-          <div className="flex justify-center">
-            <GoogleLogin
-              onSuccess={handleGoogleSuccess}
-              onError={() => setError('Google Registration Failed')}
-              theme="filled_black"
-              shape="pill"
-            />
-          </div>
-
-          <div className="relative flex items-center justify-center">
-            <div className="border-t border-zinc-800 w-full"></div>
-            <span className="bg-zinc-950 px-3 text-[10px] text-zinc-500 uppercase tracking-widest absolute">or</span>
-          </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input 
