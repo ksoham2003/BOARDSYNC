@@ -51,7 +51,6 @@ const Dashboard = () => {
         <div className="flex justify-between items-center border-b border-zinc-800 pb-6">
           <div>
             <h1 className="text-3xl font-black tracking-tight text-white">YOUR BOARDS</h1>
-            <p className="text-zinc-400 text-xs mt-1">Real-time collaborative workspaces in monochrome black & white.</p>
           </div>
 
           <Dialog open={openModal} onOpenChange={setOpenModal}>

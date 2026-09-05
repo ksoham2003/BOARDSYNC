@@ -4,7 +4,6 @@ backend/node_modules/
 frontend/node_modules/
 
 # Environment variables
-.env
 backend/.env
 frontend/.env
 *.env.local
@@ -22,5 +21,5 @@ yarn-error.log*
 
 # System & IDE files
 .DS_Store
-.vscode/
 .idea/
+config.bat

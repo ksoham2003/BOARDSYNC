@@ -4,7 +4,6 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import BoardView from './pages/BoardView';
-import AcceptInvite from './pages/AcceptInvite';
 import Navbar from './components/Navbar';
 
 const ProtectedRoute = ({ children }) => {
