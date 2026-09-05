@@ -10,7 +10,7 @@ import {
   DragOverlay,
 } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
-import { Plus, Mail, Crown } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import api from '../utils/api';
 import socket from '../utils/socket';
 import BoardList from '../components/BoardList';
@@ -18,7 +18,6 @@ import BoardCard from '../components/BoardCard';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
-import { Badge } from '../components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
 import { Card } from '../components/ui/card';
 
@@ -34,7 +33,6 @@ const BoardView = () => {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteError, setInviteError] = useState('');
   const [inviteSuccess, setInviteSuccess] = useState('');
-  const [emailPreviewUrl, setEmailPreviewUrl] = useState('');
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
